@@ -1,9 +1,10 @@
 import { Logger } from '@nestjs/common';
 import type { SystemErrorKey } from './shared/presentation';
 import type { TodoErrorKey } from './modules/todo/domain';
+import type { RoleErrorKey } from './modules/role/domain';
 
 // Add each module's key type here: `| UserErrorKey | ...`
-type ThrownErrorKey = SystemErrorKey | TodoErrorKey;
+type ThrownErrorKey = SystemErrorKey | TodoErrorKey | RoleErrorKey;
 
 /**
 Single catalog of API error codes: `{ code: KEY }`.
@@ -24,6 +25,10 @@ export const ErrorCodes = {
 	100101: 'TODO_NOT_FOUND',
 	// 100102–100105 retired (TODO_DELETE/CREATE/UPDATE_ERROR, TODO_EXIST) — do not reuse
 	100106: 'INVALID_TODO_TITLE',
+	// ROLE 1002xx
+	100201: 'ROLE_NOT_FOUND',
+	100202: 'ROLE_NAME_ALREADY_EXISTS',
+	100206: 'INVALID_ROLE_NAME',
 	//
 } as const satisfies Record<number, ThrownErrorKey>;
 

@@ -93,7 +93,7 @@ describe('TodoController (HTTP)', () => {
 
 		expect(res.status).toBe(400);
 		expect(res.body.error).toMatchObject({
-			code: 900_422,
+			code: 900422,
 			message: 'VALIDATE_ERROR',
 		});
 		expect(res.body.error.errors).toEqual(
@@ -129,7 +129,7 @@ describe('TodoController (HTTP)', () => {
 
 		expect(res.status).toBe(404);
 		expect(res.body.error).toEqual({
-			code: 100_101,
+			code: 100101,
 			message: 'TODO_NOT_FOUND',
 			errors: [],
 		});
@@ -140,7 +140,7 @@ describe('TodoController (HTTP)', () => {
 
 		expect(res.status).toBe(400);
 		expect(res.body.error).toEqual({
-			code: 900_423,
+			code: 900423,
 			message: 'BAD_REQUEST',
 			errors: [],
 		});
@@ -153,7 +153,7 @@ describe('TodoController (HTTP)', () => {
 
 		expect(res.status).toBe(400);
 		expect(res.body.error).toEqual({
-			code: 100_106,
+			code: 100106,
 			message: 'INVALID_TODO_TITLE',
 			errors: [],
 		});
