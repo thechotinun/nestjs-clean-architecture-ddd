@@ -18,7 +18,7 @@ describe('resolveErrorKey', () => {
 	});
 
 	it('should send an unregistered key as 900001 and warn', () => {
-		const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => { });
+		const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
 
 		expect(resolveErrorKey('NOPE')).toEqual({ code: 900001, message: 'UNREGISTERED_ERROR_KEY' });
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining("'NOPE'"));
