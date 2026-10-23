@@ -3,7 +3,6 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import configuration, { envFilePath } from './config/configuration';
 import { resolveErrorKey } from './error-codes';
-import { TodoModule } from './modules/todo/todo.module';
 import { DatabaseModule } from './shared/infrastructure/database';
 import {
 	ApiResponseInterceptor,
@@ -11,6 +10,8 @@ import {
 	ERROR_KEY_RESOLVER,
 	HttpExceptionFilter,
 } from './shared/presentation';
+import { TodoModule } from './modules/todo/todo.module';
+import { RoleModule } from './modules/role/role.module';
 
 @Module({
 	imports: [
@@ -21,6 +22,7 @@ import {
 		}),
 		DatabaseModule,
 		TodoModule,
+		RoleModule,
 	],
 	providers: [
 		{
