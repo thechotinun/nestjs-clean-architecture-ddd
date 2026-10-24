@@ -12,6 +12,7 @@ import {
 } from './shared/presentation';
 import { TodoModule } from './modules/todo/todo.module';
 import { RoleModule } from './modules/role/role.module';
+import { PermissionModule } from './modules/permission/permission.module';
 
 @Module({
 	imports: [
@@ -23,6 +24,7 @@ import { RoleModule } from './modules/role/role.module';
 		DatabaseModule,
 		TodoModule,
 		RoleModule,
+		PermissionModule,
 	],
 	providers: [
 		{
