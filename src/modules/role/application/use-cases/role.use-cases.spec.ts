@@ -1,9 +1,17 @@
-import { Role, RoleNameAlreadyExistsException, RoleNotFoundException } from '../../domain';
+import { Permission, PermissionNotFoundException } from '@/modules/permission/domain';
+import { InMemoryPermissionStore } from '@/modules/permission/testing/in-memory-permission.store';
+import {
+	GlobalPermissionNotAssignableException,
+	Role,
+	RoleNameAlreadyExistsException,
+	RoleNotFoundException,
+} from '../../domain';
 import { InMemoryRoleStore } from '../../testing/in-memory-role.store';
 import { CreateRoleUseCase } from './create-role.use-case';
 import { DeleteRoleUseCase } from './delete-role.use-case';
 import { GetRoleUseCase } from './get-role.use-case';
 import { ListRolesUseCase } from './list-roles.use-case';
+import { SetRolePermissionsUseCase } from './set-role-permissions.use-case';
 import { UpdateRoleUseCase } from './update-role.use-case';
 
 describe('Role use cases', () => {
@@ -112,6 +120,87 @@ describe('Role use cases', () => {
 			}),
 		).rejects.toThrow(RoleNotFoundException);
 		expect(save).not.toHaveBeenCalled();
+	});
+
+	describe('SetRolePermissions', () => {
+		let permissions: InMemoryPermissionStore;
+		let useCase: SetRolePermissionsUseCase;
+
+		const seedPermission = async (action: string, isGlobal = false) => {
+			const permission = Permission.create({ name: action, resource: 'order', action, isGlobal });
+			await permissions.repository.save(permission);
+			return permission;
+		};
+
+		beforeEach(() => {
+			permissions = new InMemoryPermissionStore();
+			useCase = new SetRolePermissionsUseCase(
+				store.repository,
+				permissions.repository,
+				store.query,
+			);
+		});
+
+		it('should replace the set, dedupe ids, and return the view', async () => {
+			const role = await seed();
+			const read = await seedPermission('read');
+			const create = await seedPermission('create');
+
+			const view = await useCase.execute({
+				id: role.id,
+				permissionIds: [read.id, create.id, read.id],
+			});
+			expect(view.permissionIds).toEqual([read.id, create.id]);
+
+			await expect(
+				useCase.execute({ id: role.id, permissionIds: [create.id] }),
+			).resolves.toHaveProperty('permissionIds', [create.id]);
+			await expect(useCase.execute({ id: role.id, permissionIds: [] })).resolves.toHaveProperty(
+				'permissionIds',
+				[],
+			);
+		});
+
+		it('should throw when the role is missing and not save', async () => {
+			const save = jest.spyOn(store.repository, 'save');
+
+			await expect(useCase.execute({ id: 'missing', permissionIds: [] })).rejects.toThrow(
+				RoleNotFoundException,
+			);
+			expect(save).not.toHaveBeenCalled();
+		});
+
+		it('should throw when any permission does not exist and not save', async () => {
+			const role = await seed();
+			const read = await seedPermission('read');
+			const save = jest.spyOn(store.repository, 'save');
+
+			await expect(
+				useCase.execute({ id: role.id, permissionIds: [read.id, 'missing'] }),
+			).rejects.toThrow(PermissionNotFoundException);
+			expect(save).not.toHaveBeenCalled();
+		});
+
+		it('should treat a soft-deleted permission as missing', async () => {
+			const role = await seed();
+			const read = await seedPermission('read');
+			await permissions.repository.delete(read);
+
+			await expect(useCase.execute({ id: role.id, permissionIds: [read.id] })).rejects.toThrow(
+				PermissionNotFoundException,
+			);
+		});
+
+		it('should refuse a global permission and not save', async () => {
+			const role = await seed();
+			const global = await seedPermission('read', true);
+			const save = jest.spyOn(store.repository, 'save');
+
+			await expect(useCase.execute({ id: role.id, permissionIds: [global.id] })).rejects.toThrow(
+				GlobalPermissionNotAssignableException,
+			);
+			expect(save).not.toHaveBeenCalled();
+		});
 	});
 
 	it('DeleteRole should load the aggregate, run its rule, then delete', async () => {

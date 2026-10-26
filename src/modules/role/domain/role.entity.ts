@@ -4,6 +4,8 @@ import { RoleName } from './value-objects';
 export interface RoleProps {
 	name: RoleName;
 	description: string | null;
+	// Other aggregate, so referenced by id only. A set keeps each permission once.
+	permissionIds: Set<string>;
 }
 
 export class Role extends AggregateRoot<RoleProps> {
@@ -11,6 +13,7 @@ export class Role extends AggregateRoot<RoleProps> {
 		return new Role({
 			name: RoleName.create(input.name),
 			description: input.description ?? null,
+			permissionIds: new Set(),
 		});
 	}
 
@@ -26,6 +29,10 @@ export class Role extends AggregateRoot<RoleProps> {
 		return this.props.description;
 	}
 
+	get permissionIds(): ReadonlySet<string> {
+		return this.props.permissionIds;
+	}
+
 	/**
 	`undefined` keeps the current value; `null` clears description.
 	*/
@@ -36,6 +43,14 @@ export class Role extends AggregateRoot<RoleProps> {
 		if (input.description !== undefined) {
 			this.props.description = input.description;
 		}
+	}
+
+	/**
+	Replaces the whole set. The caller checks the ids exist and are assignable
+	(that needs the Permission aggregate, which this one must not load).
+	*/
+	setPermissions(permissionIds: Iterable<string>): void {
+		this.props.permissionIds = new Set(permissionIds);
 	}
 
 	/**

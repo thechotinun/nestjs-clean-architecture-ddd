@@ -9,6 +9,7 @@ import {
 	ParseUUIDPipe,
 	Patch,
 	Post,
+	Put,
 	Query,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -20,9 +21,11 @@ import {
 	GetRoleUseCase,
 	ListRolesUseCase,
 	type RoleView,
+	SetRolePermissionsUseCase,
 	UpdateRoleUseCase,
 } from '../application';
 import { CreateRoleDto } from './dto/create-role.dto';
+import { SetRolePermissionsDto } from './dto/set-role-permissions.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 
 @Controller('roles')
@@ -34,6 +37,7 @@ export class RoleController {
 		private readonly listRoles: ListRolesUseCase,
 		private readonly updateRole: UpdateRoleUseCase,
 		private readonly deleteRole: DeleteRoleUseCase,
+		private readonly setRolePermissions: SetRolePermissionsUseCase,
 	) {}
 
 	@Post()
@@ -54,6 +58,14 @@ export class RoleController {
 	@Patch(':id')
 	update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateRoleDto): Promise<RoleView> {
 		return this.updateRole.execute({ id, ...dto });
+	}
+
+	@Put(':id/permissions')
+	setPermissions(
+		@Param('id', ParseUUIDPipe) id: string,
+		@Body() dto: SetRolePermissionsDto,
+	): Promise<RoleView> {
+		return this.setRolePermissions.execute({ id, ...dto });
 	}
 
 	@Delete(':id')

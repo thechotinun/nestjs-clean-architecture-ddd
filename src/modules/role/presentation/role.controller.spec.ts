@@ -4,6 +4,8 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { resolveErrorKey } from '../../../error-codes';
+import { Permission, PERMISSION_REPOSITORY } from '@/modules/permission/domain';
+import { InMemoryPermissionStore } from '@/modules/permission/testing/in-memory-permission.store';
 import {
 	ApiResponseInterceptor,
 	createValidationPipe,
@@ -15,6 +17,7 @@ import {
 	DeleteRoleUseCase,
 	GetRoleUseCase,
 	ListRolesUseCase,
+	SetRolePermissionsUseCase,
 	UpdateRoleUseCase,
 	ROLE_QUERY_SERVICE,
 } from '../application';
@@ -22,13 +25,31 @@ import { Role, ROLE_REPOSITORY } from '../domain';
 import { InMemoryRoleStore } from '../testing/in-memory-role.store';
 import { RoleController } from './role.controller';
 
+const seedRoleIn = async (store: InMemoryRoleStore) => {
+	const role = Role.create({ name: 'A' });
+	await store.repository.save(role);
+	return role;
+};
+
+const seedPermissionIn = async (
+	store: InMemoryPermissionStore,
+	action: string,
+	isGlobal = false,
+) => {
+	const permission = Permission.create({ name: action, resource: 'order', action, isGlobal });
+	await store.repository.save(permission);
+	return permission;
+};
+
 describe('RoleController (HTTP)', () => {
 	let app: INestApplication;
 	let store: InMemoryRoleStore;
+	let permissionStore: InMemoryPermissionStore;
 	const url = '/api/v1/roles';
 
 	beforeEach(async () => {
 		store = new InMemoryRoleStore();
+		permissionStore = new InMemoryPermissionStore();
 		const moduleRef = await Test.createTestingModule({
 			imports: [
 				ConfigModule.forRoot({
@@ -40,11 +61,13 @@ describe('RoleController (HTTP)', () => {
 			providers: [
 				{ provide: ROLE_REPOSITORY, useValue: store.repository },
 				{ provide: ROLE_QUERY_SERVICE, useValue: store.query },
+				{ provide: PERMISSION_REPOSITORY, useValue: permissionStore.repository },
 				CreateRoleUseCase,
 				GetRoleUseCase,
 				ListRolesUseCase,
 				UpdateRoleUseCase,
 				DeleteRoleUseCase,
+				SetRolePermissionsUseCase,
 				{ provide: APP_PIPE, useFactory: createValidationPipe },
 				{ provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
 				{ provide: APP_FILTER, useClass: HttpExceptionFilter },
@@ -83,6 +106,7 @@ describe('RoleController (HTTP)', () => {
 				deletedBy: null,
 				name: 'Buy milk',
 				description: '2 bottles',
+				permissionIds: [],
 			},
 			status: { code: 201, message: 'Created' },
 		});
@@ -169,6 +193,61 @@ describe('RoleController (HTTP)', () => {
 
 		expect(res.status).toBe(200);
 		expect(res.body.data).toMatchObject({ name: 'A', description: null });
+	});
+
+	describe('PUT :id/permissions', () => {
+		it('should replace the permission set and return it in the view', async () => {
+			const role = await seedRoleIn(store);
+			const read = await seedPermissionIn(permissionStore, 'read');
+			const create = await seedPermissionIn(permissionStore, 'create');
+
+			const res = await request(app.getHttpServer())
+				.put(`${url}/${role.id}/permissions`)
+				.send({ permissionIds: [read.id, create.id, read.id] });
+
+			expect(res.status).toBe(200);
+			expect(res.body.data.permissionIds).toEqual([read.id, create.id]);
+
+			const cleared = await request(app.getHttpServer())
+				.put(`${url}/${role.id}/permissions`)
+				.send({ permissionIds: [] });
+			expect(cleared.body.data.permissionIds).toEqual([]);
+		});
+
+		it('should return 404 for an unknown permission', async () => {
+			const role = await seedRoleIn(store);
+
+			const res = await request(app.getHttpServer())
+				.put(`${url}/${role.id}/permissions`)
+				.send({ permissionIds: ['1c6d5a24-7453-4e46-8b7f-f56ef1d564e6'] });
+
+			expect(res.status).toBe(404);
+			expect(res.body.error).toMatchObject({ code: 100301, message: 'PERMISSION_NOT_FOUND' });
+		});
+
+		it('should map the global permission rule to its catalog code', async () => {
+			const role = await seedRoleIn(store);
+			const global = await seedPermissionIn(permissionStore, 'read', true);
+
+			const res = await request(app.getHttpServer())
+				.put(`${url}/${role.id}/permissions`)
+				.send({ permissionIds: [global.id] });
+
+			expect(res.body.error).toMatchObject({
+				code: 100207,
+				message: 'GLOBAL_PERMISSION_NOT_ASSIGNABLE',
+			});
+		});
+
+		it('should reject a body that is not a uuid array', async () => {
+			const role = await seedRoleIn(store);
+
+			const res = await request(app.getHttpServer())
+				.put(`${url}/${role.id}/permissions`)
+				.send({ permissionIds: ['nope'] });
+
+			expect(res.status).toBe(400);
+		});
 	});
 
 	it('DELETE should return 204 then 404', async () => {

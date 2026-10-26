@@ -10,6 +10,8 @@ export class RoleTypeOrmQueryService
 	extends TypeOrmBaseQueryService<RoleOrmEntity, RoleView>
 	implements RoleQueryService
 {
+	protected override readonly relations = { permissions: true };
+
 	constructor(@InjectRepository(RoleOrmEntity) repository: Repository<RoleOrmEntity>) {
 		super(repository);
 	}
@@ -19,6 +21,7 @@ export class RoleTypeOrmQueryService
 			...toBaseView(record),
 			name: record.name,
 			description: record.description ?? null,
+			permissionIds: (record.permissions ?? []).map((permission) => permission.id),
 		};
 	}
 }

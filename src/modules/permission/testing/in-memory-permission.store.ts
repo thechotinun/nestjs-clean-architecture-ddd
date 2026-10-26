@@ -11,6 +11,14 @@ export class InMemoryPermissionStore {
 	readonly repository: PermissionRepository = {
 		findById: async (id) =>
 			this.rows.get(id)?.deletedDate ? null : (this.aggregates.get(id) ?? null),
+		findByIds: async (ids) => {
+			const found: Permission[] = [];
+			for (const id of ids) {
+				const aggregate = this.aggregates.get(id);
+				if (aggregate && !this.rows.get(id)?.deletedDate) found.push(aggregate);
+			}
+			return found;
+		},
 		findByResourceAndAction: async (resource, action) => {
 			for (const row of this.rows.values()) {
 				if (!row.deletedDate && row.resource === resource && row.action === action) {

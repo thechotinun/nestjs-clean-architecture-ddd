@@ -1,4 +1,5 @@
 import type { Repository } from 'typeorm';
+import { PermissionOrmEntity } from '@/modules/permission/infrastructure/persistence/permission.orm-entity';
 import { RoleOrmEntity } from './role.orm-entity';
 import { RoleTypeOrmQueryService } from './role.typeorm-query';
 
@@ -44,7 +45,18 @@ describe('RoleTypeOrmQueryService', () => {
 			deletedBy: null,
 			name: 'Admin',
 			description: 'Full access',
+			permissionIds: [],
 		});
+	});
+
+	it('should expose the linked permission ids and load the relation', async () => {
+		const linked = Object.assign(new PermissionOrmEntity(), { id: 'p1' });
+		orm.findOne.mockResolvedValue(record({ permissions: [linked] }));
+
+		await expect(query.findById('id-1')).resolves.toHaveProperty('permissionIds', ['p1']);
+		expect(orm.findOne).toHaveBeenCalledWith(
+			expect.objectContaining({ relations: { permissions: true } }),
+		);
 	});
 
 	it('should turn a missing description into null, never undefined', async () => {

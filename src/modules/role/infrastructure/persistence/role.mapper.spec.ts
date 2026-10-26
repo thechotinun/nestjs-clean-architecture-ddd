@@ -1,3 +1,4 @@
+import { PermissionOrmEntity } from '@/modules/permission/infrastructure/persistence/permission.orm-entity';
 import { Role } from '../../domain';
 import { RoleMapper } from './role.mapper';
 import { RoleOrmEntity } from './role.orm-entity';
@@ -44,6 +45,7 @@ describe('RoleMapper', () => {
 				isActive: true,
 				name: 'Admin',
 				description: 'Full access',
+				permissions: [],
 			}),
 		);
 		expect(persisted.createdDate).toBeUndefined();
@@ -54,12 +56,36 @@ describe('RoleMapper', () => {
 		expect(persisted.deletedBy).toBeUndefined();
 	});
 
+	it('toDomain should collect the linked permission ids and tolerate unloaded links', () => {
+		const linked = [{ id: 'p1' }, { id: 'p2' }].map((p) =>
+			Object.assign(new PermissionOrmEntity(), p),
+		);
+
+		expect([...mapper.toDomain(record({ permissions: linked })).permissionIds]).toEqual([
+			'p1',
+			'p2',
+		]);
+		expect(mapper.toDomain(record()).permissionIds.size).toBe(0);
+	});
+
+	it('toPersistence should send id-only permission stubs so an empty set clears the links', () => {
+		const role = Role.create({ name: 'Admin' });
+		role.setPermissions(['p1', 'p2']);
+
+		const persisted = mapper.toPersistence(role);
+
+		expect(persisted.permissions).toEqual([{ id: 'p1' }, { id: 'p2' }]);
+		expect(persisted.permissions![0]).toBeInstanceOf(PermissionOrmEntity);
+	});
+
 	it('should survive a round trip through persistence', () => {
 		const role = Role.create({ name: 'Admin' });
+		role.setPermissions(['p1']);
 
 		const restored = mapper.toDomain(mapper.toPersistence(role));
 
 		expect(restored.equals(role)).toBe(true);
+		expect([...restored.permissionIds]).toEqual(['p1']);
 		expect(restored.name.value).toBe('Admin');
 		expect(restored.description).toBeNull();
 	});

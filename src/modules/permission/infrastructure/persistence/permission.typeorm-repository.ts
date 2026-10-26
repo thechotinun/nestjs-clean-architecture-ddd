@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { TypeOrmBaseRepository } from '@/shared/infrastructure/database';
 import type { Permission, PermissionRepository } from '../../domain';
 import { PermissionMapper } from './permission.mapper';
@@ -16,6 +16,12 @@ export class PermissionTypeOrmRepository
 		mapper: PermissionMapper,
 	) {
 		super(repository, mapper);
+	}
+
+	async findByIds(ids: string[]): Promise<Permission[]> {
+		if (ids.length === 0) return [];
+		const records = await this.repository.find({ where: { id: In(ids) } });
+		return records.map((record) => this.mapper.toDomain(record));
 	}
 
 	async findByResourceAndAction(resource: string, action: string): Promise<Permission | null> {

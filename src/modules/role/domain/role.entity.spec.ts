@@ -30,6 +30,23 @@ describe('Role', () => {
 		expect(role.description).toBeNull();
 	});
 
+	it('should start without permissions', () => {
+		expect(Role.create({ name: 'A' }).permissionIds.size).toBe(0);
+	});
+
+	it('should replace the whole permission set and drop duplicates', () => {
+		const role = Role.create({ name: 'A' });
+
+		role.setPermissions(['p1', 'p2', 'p1']);
+		expect([...role.permissionIds]).toEqual(['p1', 'p2']);
+
+		role.setPermissions(['p3']);
+		expect([...role.permissionIds]).toEqual(['p3']);
+
+		role.setPermissions([]);
+		expect(role.permissionIds.size).toBe(0);
+	});
+
 	it('should reject invalid name on update', () => {
 		const role = Role.create({ name: 'A' });
 

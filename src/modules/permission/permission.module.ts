@@ -28,5 +28,7 @@ import { PermissionController } from './presentation/permission.controller';
 		UpdatePermissionUseCase,
 		DeletePermissionUseCase,
 	],
+	// Role assigns permissions by id and needs to check they exist.
+	exports: [PERMISSION_REPOSITORY],
 })
 export class PermissionModule {}

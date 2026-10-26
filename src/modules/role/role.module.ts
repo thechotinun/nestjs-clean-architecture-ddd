@@ -6,8 +6,10 @@ import {
 	GetRoleUseCase,
 	ListRolesUseCase,
 	ROLE_QUERY_SERVICE,
+	SetRolePermissionsUseCase,
 	UpdateRoleUseCase,
 } from './application';
+import { PermissionModule } from '@/modules/permission/permission.module';
 import { ROLE_REPOSITORY } from './domain';
 import { RoleMapper } from './infrastructure/persistence/role.mapper';
 import { RoleOrmEntity } from './infrastructure/persistence/role.orm-entity';
@@ -16,7 +18,7 @@ import { RoleTypeOrmRepository } from './infrastructure/persistence/role.typeorm
 import { RoleController } from './presentation/role.controller';
 
 @Module({
-	imports: [TypeOrmModule.forFeature([RoleOrmEntity])],
+	imports: [TypeOrmModule.forFeature([RoleOrmEntity]), PermissionModule],
 	controllers: [RoleController],
 	providers: [
 		RoleMapper,
@@ -27,6 +29,7 @@ import { RoleController } from './presentation/role.controller';
 		ListRolesUseCase,
 		UpdateRoleUseCase,
 		DeleteRoleUseCase,
+		SetRolePermissionsUseCase,
 	],
 })
 export class RoleModule {}

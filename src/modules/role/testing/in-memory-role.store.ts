@@ -31,6 +31,7 @@ export class InMemoryRoleStore {
 				deletedBy: null,
 				name: role.name.value,
 				description: role.description,
+				permissionIds: [...role.permissionIds],
 			});
 		},
 		delete: async (role) => {
